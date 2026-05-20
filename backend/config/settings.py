@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from pathlib import Path
 import dj_database_url
 
 # =========================================================
@@ -112,6 +112,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # =========================================================
 # DATABASE CONFIGURATION
 # =========================================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
