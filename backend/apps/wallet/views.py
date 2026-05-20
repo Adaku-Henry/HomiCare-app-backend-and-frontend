@@ -1,47 +1,113 @@
-from rest_framework import viewsets, permissions
-from .models import Wallet, WalletTransaction
-from .serializers import WalletSerializer, WalletTransactionSerializer
-from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 
-class WalletViewSet(viewsets.ModelViewSet):
-    queryset = Wallet.objects.all()
-    serializer_class = WalletSerializer
-    permission_classes = [permissions.IsAuthenticated]
+from .models import Wallet, WalletTransaction, WithdrawalRequest
 
-    def get_queryset(self):
-        return Wallet.objects.filter(user=self.request.user)
-
-class WalletTransactionViewSet(viewsets.ModelViewSet):
-    queryset = WalletTransaction.objects.all()
-    serializer_class = WalletTransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return WalletTransaction.objects.filter(wallet__user=self.request.user)
+User = get_user_model()
 
 
-class WalletViewSet(viewsets.ModelViewSet):
-    ...
+# ----------------------------------------
+# GET wallet balance + transactions
+# ----------------------------------------
+class WalletView(APIView):
 
-    @action(detail=False, methods=['post'])
-    def topup(self, request):
-        wallet = Wallet.objects.get(user=request.user)
-        amount = request.data.get('amount')
-        reference = request.data.get('reference')
+    def get(self, request):
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
 
-        if not amount or not reference:
-            return Response({'error': 'Amount and reference required.'}, status=status.HTTP_400_BAD_REQUEST)
+        transactions = wallet.transactions.all().order_by('-timestamp')
 
-        transaction = WalletTransaction.objects.create(
+        data = {
+            "balance": wallet.balance,
+            "transactions": [
+                {
+                    "type": t.transaction_type,
+                    "amount": t.amount,
+                    "reference": t.reference,
+                    "description": t.description,
+                    "timestamp": t.timestamp,
+                }
+                for t in transactions
+            ]
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+# ----------------------------------------
+# TOP UP WALLET
+# ----------------------------------------
+class WalletTopUpView(APIView):
+
+    def post(self, request):
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+        amount = request.data.get("amount")
+        reference = request.data.get("reference", "TOPUP-REF")
+        description = request.data.get("description", "")
+
+        if not amount:
+            return Response({"error": "Amount is required"}, status=400)
+
+        wallet.topup(amount, reference, description)
+
+        return Response({
+            "message": "Top-up successful",
+            "balance": wallet.balance
+        }, status=200)
+
+
+# ----------------------------------------
+# SPEND FROM WALLET
+# ----------------------------------------
+class WalletSpendView(APIView):
+
+    def post(self, request):
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+        amount = request.data.get("amount")
+        reference = request.data.get("reference", "SPEND-REF")
+        description = request.data.get("description", "")
+
+        if not amount:
+            return Response({"error": "Amount is required"}, status=400)
+
+        try:
+            wallet.spend(amount, reference, description)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+
+        return Response({
+            "message": "Spend successful",
+            "balance": wallet.balance
+        }, status=200)
+
+
+# ----------------------------------------
+# WITHDRAW REQUEST
+# ----------------------------------------
+class WithdrawalRequestView(APIView):
+
+    def post(self, request):
+        wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+        amount = request.data.get("amount")
+
+        if not amount:
+            return Response({"error": "Amount is required"}, status=400)
+
+        withdrawal = WithdrawalRequest.objects.create(
             wallet=wallet,
-            transaction_type='TOPUP',
-            amount=amount,
-            reference=reference,
-            description='Top-up via mock gateway'
+            amount=amount
         )
-        wallet.balance += float(amount)
-        wallet.save()
 
-        return Response({'message': 'Wallet topped up successfully.', 'balance': wallet.balance})
+        return Response({
+            "message": "Withdrawal request submitted",
+            "status": withdrawal.status
+        }, status=201)
+
+
+class WalletTransactionViewSet:
+    pass
