@@ -41,9 +41,11 @@ class Booking(models.Model):
         return f"{self.reference or self.id} - {self.user.username}"
 
     def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # save first to get ID
+
         if not self.reference:
-            self.reference = f"HC-{self.user.id}-{self.booking_date.strftime('%Y%m%d')}-{self.id or 'NEW'}"
-        super().save(*args, **kwargs)
+            self.reference = f"HC-{self.user.id}-{self.booking_date.strftime('%Y%m%d')}-{self.id}"
+            super().save(update_fields=['reference'])
 
 class BookingAttachment(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='attachments')
