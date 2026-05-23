@@ -19,7 +19,11 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    "homicare-app-backend-and-frontend-1.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 
 # =========================================================
