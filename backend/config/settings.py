@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from pathlib import Path
-import dj_database_url
+
 
 # =========================================================
 # BASE DIRECTORY
@@ -17,7 +17,7 @@ SECRET_KEY = os.environ.get(
     'django-insecure-default-key-change-this'
 )
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [
     "homicare-app-backend-and-frontend-1.onrender.com",
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.providers',
     'apps.bookings',
     'apps.wallet',
+    'apps.chat',
     'apps.payments',
     'apps.subscriptions',
     'apps.notifications',
@@ -113,6 +114,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
+# =========================================================
+# CHANNEL LAYERS
+# =========================================================
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 # =========================================================
 # DATABASE CONFIGURATION
 # =========================================================

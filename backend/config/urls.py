@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/subscriptions/", include("apps.subscriptions.urls")),
     path("api/support/", include("apps.support.urls")),
     path("api/ratings/", include("apps.ratings.urls")),
+    path("api/chat/", include("apps.chat.urls")),
 
     # ✅ BOOKINGS (FIXED)
     path('api/bookings/', BookingListCreateView.as_view()),
